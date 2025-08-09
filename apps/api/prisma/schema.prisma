@@ -1,0 +1,129 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  emailDomain      String
+  name             String?
+  age              Int?
+  major            String?
+  yearInSchool     YearInSchool?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  profileCompleted Boolean  @default(false)
+  profile          Profile?
+  sentThreadsA     Thread[] @relation("ThreadsA")
+  sentThreadsB     Thread[] @relation("ThreadsB")
+  messages         Message[]
+  matchScoresA     MatchScore[] @relation("MatchScoresA")
+  matchScoresB     MatchScore[] @relation("MatchScoresB")
+}
+
+model Profile {
+  id                          String   @id @default(cuid())
+  userId                      String   @unique
+  user                        User     @relation(fields: [userId], references: [id])
+  // Lifestyle
+  sleepSchedule               SleepSchedule
+  cleanliness                 Int
+  noiseTolerance              Int
+  studyHabits                 StudyHabits
+  guests                      Guests
+  // Personality
+  p_introvertExtrovert        Int
+  p_structureSpontaneity      Int
+  p_morningNight              Int
+  // Requests
+  specialRequests             String?
+  // Dealbreakers
+  smoking                     Boolean
+  petsOk                      Boolean
+  petAllergies                Boolean
+}
+
+model MatchScore {
+  id        String   @id @default(cuid())
+  userAId   String
+  userBId   String
+  score     Int
+  details   Json
+  createdAt DateTime @default(now())
+
+  userA User @relation("MatchScoresA", fields: [userAId], references: [id])
+  userB User @relation("MatchScoresB", fields: [userBId], references: [id])
+
+  @@index([userAId])
+  @@index([userBId])
+  @@unique([userAId, userBId])
+}
+
+model Thread {
+  id              String   @id @default(cuid())
+  participantAId  String
+  participantBId  String
+  createdAt       DateTime @default(now())
+  lastMessageAt   DateTime @default(now())
+  messages        Message[]
+
+  participantA User @relation("ThreadsA", fields: [participantAId], references: [id])
+  participantB User @relation("ThreadsB", fields: [participantBId], references: [id])
+
+  @@unique([participantAId, participantBId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  threadId  String
+  senderId  String
+  body      String
+  createdAt DateTime @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id])
+  sender User   @relation(fields: [senderId], references: [id])
+
+  @@index([threadId])
+  @@index([createdAt])
+}
+
+model AdminMetricSnapshot {
+  id                 String   @id @default(cuid())
+  date               DateTime @unique
+  totalUsers         Int
+  completedProfiles  Int
+  avgCompatibility   Float
+}
+
+enum YearInSchool {
+  FRESHMAN
+  SOPHOMORE
+  JUNIOR
+  SENIOR
+  GRAD
+}
+
+enum SleepSchedule {
+  EARLY
+  NORMAL
+  LATE
+}
+
+enum StudyHabits {
+  LIBRARY
+  ROOM
+  MIX
+}
+
+enum Guests {
+  RARE
+  SOMETIMES
+  OFTEN
+}
+
