@@ -1,6 +1,71 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import api from '@/lib/api';
 import { z } from 'zod';
+
+const ucscMajors = [
+  'Agroecology',
+  'Ancient Studies',
+  'Anthropology',
+  'Applied Physics',
+  'Applied Linguistics and Multilingualism',
+  'Applied Mathematics',
+  'Art',
+  'Art and Design: Games and Playable Media',
+  'Biochemistry and Molecular Biology',
+  'Biology',
+  'Biotechnology',
+  'Biomolecular Engineering and Bioinformatics',
+  'Business Management Economics',
+  'Chemistry',
+  'Cognitive Science',
+  'Community Studies',
+  'Computer Engineering',
+  'Computer Science',
+  'Computer Science: Computer Game Design',
+  'Creative Technologies',
+  'Critical Race and Ethnic Studies',
+  'Earth Sciences',
+  'Ecology and Evolution',
+  'Economics',
+  'Education, Democracy, and Justice',
+  'Electrical Engineering',
+  'Environmental Sciences',
+  'Environmental Studies',
+  'Feminist Studies',
+  'Film and Digital Media',
+  'Global and Community Health',
+  'Global Economics',
+  'Human Biology',
+  'History',
+  'History of Art and Visual Culture',
+  'Jewish Studies',
+  'Language Studies',
+  'Latin American and Latino Studies',
+  'Legal Studies',
+  'Linguistics',
+  'Literature',
+  'Marine Biology',
+  'Mathematics',
+  'Mathematics Education',
+  'Mathematics Theory and Computation',
+  'Microbiology',
+  'Molecular, Cell, and Developmental Biology',
+  'Music',
+  'Network and Digital Technology',
+  'Neuroscience',
+  'Philosophy',
+  'Physics',
+  'Physics (Astrophysics)',
+  'Plant Sciences',
+  'Politics',
+  'Psychology',
+  'Robotics Engineering',
+  'Science Education',
+  'Sociology',
+  'Spanish Studies',
+  'Technology and Information Management',
+  'Theater Arts'
+];
 
 const schema = z.object({
   name: z.string().min(1),
@@ -22,6 +87,128 @@ const schema = z.object({
 });
 
 type Form = z.infer<typeof schema>;
+
+function MajorDropdown({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [filter, setFilter] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredMajors = ucscMajors.filter(major =>
+    major.toLowerCase().includes(filter.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+        setFilter('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (major: string) => {
+    onChange(major);
+    setIsOpen(false);
+    setFilter('');
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    
+    if (isOpen) {
+      // When dropdown is open, update filter
+      setFilter(newValue);
+    } else {
+      // When dropdown is closed, update the actual value
+      onChange(newValue);
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      // If dropdown is open and there's a filter, select the first filtered result
+      if (isOpen && filter && filteredMajors.length > 0) {
+        handleSelect(filteredMajors[0]);
+      } else if (isOpen && filter) {
+        // If no filtered results but there's text, use the custom input
+        onChange(filter);
+        setIsOpen(false);
+        setFilter('');
+      } else if (!isOpen) {
+        // If dropdown is closed, just close it (value is already set)
+        setIsOpen(false);
+      }
+    } else if (e.key === 'Escape') {
+      setIsOpen(false);
+      setFilter('');
+    }
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <input
+        className="input mt-1 cursor-pointer"
+        value={isOpen ? filter : value}
+        onChange={handleInputChange}
+        onKeyDown={handleInputKeyDown}
+        onFocus={() => {
+          setIsOpen(true);
+          setFilter(value);
+        }}
+        placeholder="Select or type your major"
+      />
+      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+      
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
+          {filteredMajors.length > 0 ? (
+            <>
+              {filteredMajors.map((major) => (
+                <div
+                  key={major}
+                  className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm"
+                  onClick={() => handleSelect(major)}
+                >
+                  {major}
+                </div>
+              ))}
+              {filter && !ucscMajors.includes(filter) && (
+                <div className="border-t border-gray-100">
+                  <div
+                    className="px-4 py-2 hover:bg-gray-50 cursor-pointer text-sm text-blue-600"
+                    onClick={() => handleSelect(filter)}
+                  >
+                    Use "{filter}" (custom major)
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="px-4 py-2 text-sm text-gray-500">
+              {filter ? (
+                <div
+                  className="text-blue-600 cursor-pointer hover:bg-gray-50"
+                  onClick={() => handleSelect(filter)}
+                >
+                  Use "{filter}" as custom major
+                </div>
+              ) : (
+                "No majors found. You can type a custom major."
+              )}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function OnboardingProfile() {
   const [step, setStep] = useState(1);
@@ -102,7 +289,7 @@ export default function OnboardingProfile() {
             </div>
             <div>
               <label className="label">Major</label>
-              <input className="input mt-1" value={form.major} onChange={(e) => setForm({ ...form, major: e.target.value })} />
+              <MajorDropdown value={form.major} onChange={(major) => setForm({ ...form, major })} />
             </div>
             <div>
               <label className="label">Year in School</label>

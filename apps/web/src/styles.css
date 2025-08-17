@@ -3,13 +3,14 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light dark;
+  /* Force light form controls to avoid black inputs on macOS dark mode */
+  color-scheme: light;
 }
 
 body { @apply bg-gray-50 text-gray-900; }
 
 .card { @apply bg-white rounded-xl shadow-sm border border-gray-200; }
 .btn { @apply inline-flex items-center justify-center rounded-md bg-black text-white px-4 py-2 hover:opacity-90 disabled:opacity-50; }
-.input { @apply w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black; }
+.input { @apply w-full rounded-md border border-gray-300 px-3 py-2 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-black; }
 .label { @apply text-sm font-medium text-gray-700; }
 
